@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Vision System</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f; --surface: #181818; --surface2: #222222;
+    --border: #2a2a2a; --accent: #d4a853; --text: #e8e4dc;
+    --muted: #7a7570; --dim: #4a4540;
+    --spiritual: #c084fc; --mental: #60a5fa; --personal: #34d399;
+    --physical: #f87171; --relationships: #fb923c;
+    --career: #fbbf24; --financial: #a3e635;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; }
+
+  /* LOADING */
+  .loading-screen {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 999; gap: 16px;
+  }
+  .loading-screen h2 { font-family: 'Instrument Serif', serif; font-style: italic; color: var(--accent); font-size: 1.8rem; }
+  .loading-screen p { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HEADER */
+  .header {
+    padding: 28px 40px 20px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg); z-index: 100;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .header-left h1 { font-family: 'Instrument Serif', serif; font-size: 2rem; color: var(--accent); line-height: 1; font-style: italic; }
+  .header-left p { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+  .today-box { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); text-align: right; }
+  .today-box span { display: block; color: var(--accent); font-size: 0.95rem; font-family: 'Syne', sans-serif; font-weight: 700; }
+
+  /* STREAK BAR */
+  .streak-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 9px 40px; display: flex; align-items: center; gap: 20px; }
+  .streak-item { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+  .streak-num { font-size: 0.95rem; font-weight: 700; color: var(--accent); font-family: 'Syne', sans-serif; }
+  .streak-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--dim); }
+  .sync-status { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--dim); display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+  .sync-dot.synced { background: var(--personal); }
+  .sync-dot.syncing { background: var(--career); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* LAYOUT */
+  .layout { display: grid; grid-template-columns: 230px 1fr; min-height: calc(100vh - 100px); }
+
+  /* SIDEBAR */
+  .sidebar { border-right: 1px solid var(--border); padding: 18px 0; position: sticky; top: 100px; height: calc(100vh - 100px); overflow-y: auto; }
+  .sidebar-section { padding: 0 14px; margin-bottom: 6px; }
+  .sidebar-label { font-family: 'DM Mono', monospace; font-size: 0.56rem; letter-spacing: 0.12em; color: var(--dim); margin-bottom: 5px; padding: 0 8px; text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; color: var(--muted); transition: all 0.15s; font-weight: 600; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--surface); color: var(--text); }
+  .nav-item.active { background: var(--surface2); color: var(--text); }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  /* MAIN */
+  .main { padding: 26px 40px; overflow-y: auto; height: calc(100vh - 100px); }
+  .page { display: none; } .page.active { display: block; }
+  .page-title { font-family: 'Instrument Serif', serif; font-size: 1.9rem; margin-bottom: 3px; font-style: italic; }
+  .page-sub { font-family: 'DM Mono', monospace; font-size: 0.66rem; color: var(--muted); margin-bottom: 24px; letter-spacing: 0.06em; }
+
+  /* TOGGLES */
+  .toggle-block { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s; }
+  .toggle-block:hover { border-color: var(--dim); }
+  .toggle-header { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; background: var(--surface); user-select: none; transition: background 0.15s; }
+  .toggle-header:hover { background: var(--surface2); }
+  .toggle-arrow { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; color: var(--muted); transition: transform 0.2s; flex-shrink: 0; font-size: 0.6rem; }
+  .toggle-block.open .toggle-arrow { transform: rotate(90deg); }
+  .toggle-icon { font-size: 0.9rem; flex-shrink: 0; }
+  .toggle-title { font-size: 0.85rem; font-weight: 700; flex: 1; }
+  .toggle-badge { font-family: 'DM Mono', monospace; font-size: 0.56rem; padding: 2px 7px; border-radius: 20px; border: 1px solid var(--dim); color: var(--muted); }
+  .toggle-body { display: none; padding: 12px 16px 16px 40px; border-top: 1px solid var(--border); background: var(--bg); }
+  .toggle-block.open .toggle-body { display: block; }
+  .toggle-body .toggle-block { margin-bottom: 6px; }
+  .toggle-body .toggle-header { padding: 8px 12px; }
+  .toggle-body .toggle-body { padding-left: 28px; }
+
+  /* LISTS */
+  .content-list { list-style: none; padding: 0; }
+  .content-list li { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 0.8rem; color: var(--text); line-height: 1.5; border-bottom: 1px solid var(--border); }
+  .content-list li:last-child { border-bottom: none; }
+  .content-list li::before { content: '—'; color: var(--dim); font-family: 'DM Mono', monospace; flex-shrink: 0; }
+
+  /* CHECKBOXES */
+  .check-list { list-style: none; padding: 0; }
+  .check-item { display: flex; align-items: flex-start; gap: 9px; padding: 6px 0; font-size: 0.8rem; color: var(--text); line-height: 1.5; border-bottom: 1px solid var(--border); }
+  .check-item:last-child { border-bottom: none; }
+  .check-item input[type="checkbox"] { appearance: none; width: 15px; height: 15px; border: 1.5px solid var(--dim); border-radius: 3px; flex-shrink: 0; margin-top: 3px; cursor: pointer; transition: all 0.15s; position: relative; }
+  .check-item input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .check-item input[type="checkbox"]:checked::after { content: '✓'; position: absolute; color: #000; font-size: 0.52rem; font-weight: 900; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .check-item label { cursor: pointer; line-height: 1.5; }
+  .check-item.done label { text-decoration: line-through; color: var(--muted); }
+
+  /* QUOTE */
+  .quote-block { border-left: 3px solid var(--accent); padding: 10px 14px; margin: 10px 0; background: var(--surface); border-radius: 0 6px 6px 0; font-family: 'Instrument Serif', serif; font-style: italic; font-size: 0.92rem; color: var(--text); line-height: 1.5; }
+
+  /* SECTION LABEL */
+  .section-label { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; margin-top: 18px; }
+
+  /* ANCHORS */
+  .anchor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .anchor-card { border: 1px solid var(--border); border-radius: 8px; padding: 11px; background: var(--surface); text-align: center; }
+  .anchor-icon { font-size: 1.2rem; margin-bottom: 3px; }
+  .anchor-name { font-size: 0.75rem; font-weight: 700; }
+  .anchor-sub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+
+  /* PROGRESS */
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width 0.4s; }
+
+  /* NOTES */
+  .daily-notes-label { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 7px; margin-top: 18px; }
+  .daily-notes { width: 100%; min-height: 90px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Instrument Serif', serif; font-size: 0.92rem; padding: 11px 13px; resize: vertical; outline: none; line-height: 1.6; font-style: italic; }
+  .daily-notes:focus { border-color: var(--accent); }
+  .daily-notes::placeholder { color: var(--dim); }
+
+  /* SAVE BTN */
+  .save-day-btn { display: flex; align-items: center; gap: 7px; background: var(--accent); color: #000; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.8rem; transition: opacity 0.15s; margin-top: 12px; }
+  .save-day-btn:hover { opacity: 0.85; }
+  .save-day-btn.saved { background: var(--personal); }
+
+  /* CALENDAR */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-nav-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.75rem; }
+  .cal-nav-btn:hover { background: var(--surface2); }
+  .cal-month-label { font-family: 'Instrument Serif', serif; font-size: 1.2rem; color: var(--accent); font-style: italic; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 24px; }
+  .cal-dow { font-family: 'DM Mono', monospace; font-size: 0.55rem; color: var(--dim); text-align: center; padding: 4px 0; }
+  .cal-day { aspect-ratio: 1; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; gap: 2px; }
+  .cal-day:hover { border-color: var(--accent); }
+  .cal-day.empty { background: transparent; border-color: transparent; cursor: default; }
+  .cal-day.today { border-color: var(--accent); }
+  .cal-day.has-data { background: var(--surface2); }
+  .cal-day.perfect { background: #0f1f0f; border-color: var(--personal); }
+  .cal-day.partial { background: #1f1800; border-color: var(--career); }
+  .cal-day.selected { border-color: var(--mental) !important; box-shadow: 0 0 0 2px #60a5fa33; }
+  .cal-dots { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; max-width: 26px; }
+  .cal-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+  /* LOG */
+  .log-entry { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
+  .log-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; background: var(--surface); cursor: pointer; }
+  .log-header:hover { background: var(--surface2); }
+  .log-date { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--accent); }
+  .log-score { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+  .log-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); background: var(--bg); }
+  .log-entry.open .log-body { display: block; }
+  .log-note { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 0.9rem; color: var(--text); line-height: 1.6; margin-bottom: 10px; padding: 9px 12px; background: var(--surface); border-radius: 6px; border-left: 3px solid var(--accent); }
+  .log-checks { display: flex; flex-wrap: wrap; gap: 5px; }
+  .log-check-tag { font-family: 'DM Mono', monospace; font-size: 0.58rem; padding: 2px 7px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .done-tag { border-color: var(--personal) !important; color: var(--personal) !important; background: #0a1a0a !important; }
+  .skip-tag { border-color: var(--dim) !important; color: var(--dim) !important; text-decoration: line-through; }
+
+  /* EMPTY */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-state .empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .empty-state p { font-size: 0.82rem; line-height: 1.6; }
+
+  /* DAY DETAIL */
+  .day-detail { border: 1px solid var(--mental); border-radius: 10px; padding: 16px; margin-bottom: 18px; background: var(--surface); }
+  .day-detail-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--mental); letter-spacing: 0.1em; margin-bottom: 10px; }
+
+  /* MONTH TIMELINE */
+  .month-timeline { display: flex; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .month-pip { flex: 1; padding: 9px 4px; text-align: center; background: var(--surface); border-right: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+  .month-pip:last-child { border-right: none; }
+  .month-pip:hover, .month-pip.active { background: var(--surface2); }
+  .month-pip .m-num { font-family: 'DM Mono', monospace; font-size: 0.55rem; color: var(--dim); }
+  .month-pip .m-word { font-size: 0.65rem; font-weight: 800; color: var(--accent); margin-top: 2px; }
+
+  /* COLORS */
+  .dot-spiritual{background:var(--spiritual)} .dot-mental{background:var(--mental)} .dot-personal{background:var(--personal)}
+  .dot-physical{background:var(--physical)} .dot-relationships{background:var(--relationships)} .dot-career{background:var(--career)} .dot-financial{background:var(--financial)}
+  .text-spiritual{color:var(--spiritual)} .text-mental{color:var(--mental)} .text-personal{color:var(--personal)}
+  .text-physical{color:var(--physical)} .text-relationships{color:var(--relationships)} .text-career{color:var(--career)} .text-financial{color:var(--financial)}
+
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--dim);border-radius:2px}
+
+  @media(max-width:768px){
+    .layout{grid-template-columns:1fr}
+    .sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+    .main{padding:18px 16px;height:auto}
+    .anchor-grid{grid-template-columns:1fr 1fr}
+    .header{padding:18px 16px 14px}
+    .streak-bar{padding:7px 16px;gap:12px}
+  }
+
+  /* WORKOUT */
+  .workout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .workout-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .workout-muscle { font-family: 'DM Mono', monospace; font-size: 0.58rem; letter-spacing: 0.12em; color: var(--physical); margin-bottom: 10px; }
+  .workout-exercises { display: flex; flex-direction: column; gap: 8px; }
+  .workout-ex { display: flex; flex-direction: column; gap: 2px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .workout-ex:last-child { border-bottom: none; padding-bottom: 0; }
+  .ex-name { font-size: 0.82rem; font-weight: 700; }
+  .ex-sets { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--muted); }
+  /* JOURNAL */
+  .journal-entry-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.15s; }
+  .journal-entry-card:hover { border-color: var(--dim); }
+  .journal-entry-date { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--accent); margin-bottom: 6px; }
+  .journal-entry-preview { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 0.85rem; color: var(--muted); line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .journal-full { display: none; font-family: 'Instrument Serif', serif; font-style: italic; font-size: 0.9rem; color: var(--text); line-height: 1.7; margin-top: 8px; white-space: pre-wrap; }
+  .journal-entry-card.open .journal-entry-preview { display: none; }
+  .journal-entry-card.open .journal-full { display: block; }
+  .journal-write-area { width: 100%; min-height: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Instrument Serif', serif; font-size: 1rem; padding: 14px 16px; resize: vertical; outline: none; line-height: 1.7; font-style: italic; }
+  .journal-write-area:focus { border-color: var(--accent); }
+  .journal-write-area::placeholder { color: var(--dim); }
+  .journal-save-btn { display: flex; align-items: center; gap: 7px; background: var(--accent); color: #000; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.8rem; margin-top: 10px; transition: opacity 0.15s; }
+  .journal-save-btn:hover { opacity: 0.85; }
+  /* GITHUB GUIDE */
+  .guide-step { display: flex; gap: 14px; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .guide-step:last-child { border-bottom: none; }
+  .guide-num { font-family: 'DM Mono', monospace; font-size: 0.75rem; font-weight: 700; color: var(--accent); background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .guide-text { font-size: 0.82rem; line-height: 1.6; color: var(--text); }
+  .guide-text strong { color: var(--accent); }
+  .guide-text code { font-family: 'DM Mono', monospace; font-size: 0.72rem; background: var(--surface2); padding: 2px 6px; border-radius: 4px; color: var(--personal); }
+
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading">
+  <div class="spinner"></div>
+  <h2>Vision System</h2>
+  <p>LOADING YOUR DATA...</p>
+</div>
+
+<div id="app" style="display:none;">
+
+<div class="header">
+  <div class="header-left">
+    <h1>Vision System</h1>
+    <p>ORGANIZED · INTENTIONAL · DAILY EXECUTION</p>
+  </div>
+  <div class="today-box">
+    <span id="today-date"></span>
+    YOUR ROADMAP
+  </div>
+</div>
+
+<div class="streak-bar">
+  <div class="streak-item">🔥 <span class="streak-num" id="streak-count">0</span> day streak</div>
+  <div class="streak-dot"></div>
+  <div class="streak-item">📅 <span class="streak-num" id="total-days">0</span> days logged</div>
+  <div class="streak-dot"></div>
+  <div class="streak-item">✅ <span class="streak-num" id="today-pct">0</span>% today</div>
+  <div class="sync-status">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-label">not saved</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Navigation</div>
+      <div class="nav-item active" onclick="showPage('daily',this)"><div class="nav-dot" style="background:var(--accent)"></div>Daily Execution</div>
+      <div class="nav-item" onclick="showPage('progress',this)"><div class="nav-dot" style="background:var(--mental)"></div>Progress & History</div>
+      <div class="nav-item" onclick="showPage('priorities',this)"><div class="nav-dot" style="background:var(--muted)"></div>Priorities & Identity</div>
+      <div class="nav-item" onclick="showPage('5year',this)"><div class="nav-dot" style="background:var(--muted)"></div>5-Year Vision</div>
+      <div class="nav-item" onclick="showPage('1year',this)"><div class="nav-dot" style="background:var(--muted)"></div>1-Year Plan</div>
+      <div class="nav-item" onclick="showPage('6month',this)"><div class="nav-dot" style="background:var(--muted)"></div>6-Month Goals</div>
+      <div class="nav-item" onclick="showPage('monthly',this)"><div class="nav-dot" style="background:var(--muted)"></div>Monthly Execution</div>
+      <div class="nav-item" onclick="showPage('workout',this)"><div class="nav-dot dot-physical"></div>Workout Plan</div>
+      <div class="nav-item" onclick="showPage('journal',this);renderJournalHistory()"><div class="nav-dot" style="background:var(--accent)"></div>Journal</div>
+      <div class="nav-item" onclick="showPage('github',this)"><div class="nav-dot" style="background:var(--personal)"></div>GitHub Guide</div>
+
+    </div>
+    <div class="sidebar-section" style="margin-top:10px;">
+      <div class="sidebar-label">Pillars</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('spiritual'),100)"><div class="nav-dot dot-spiritual"></div>Spiritual</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('mental'),100)"><div class="nav-dot dot-mental"></div>Mental</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('personal'),100)"><div class="nav-dot dot-personal"></div>Personal Growth</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('physical'),100)"><div class="nav-dot dot-physical"></div>Physical</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('relationships'),100)"><div class="nav-dot dot-relationships"></div>Relationships</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('career'),100)"><div class="nav-dot dot-career"></div>Career</div>
+      <div class="nav-item" onclick="showPage('daily',this);setTimeout(()=>scrollToPillar('financial'),100)"><div class="nav-dot dot-financial"></div>Financial</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- DAILY PAGE -->
+    <div class="page active" id="page-daily">
+      <div class="page-title">Daily Execution</div>
+      <div class="page-sub">CHECK OFF YOUR NON-NEGOTIABLES · SYNCS ACROSS ALL DEVICES</div>
+      <div class="anchor-grid">
+        <div class="anchor-card"><div class="anchor-icon">📖</div><div class="anchor-name">Bible Reading</div><div class="anchor-sub">Anchor #1</div></div>
+        <div class="anchor-card"><div class="anchor-icon">🏋️</div><div class="anchor-name">Workout</div><div class="anchor-sub">Anchor #2</div></div>
+        <div class="anchor-card"><div class="anchor-icon">📚</div><div class="anchor-name">Learning</div><div class="anchor-sub">Anchor #3</div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>TODAY'S COMPLETION</span><span id="progress-text">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- SPIRITUAL -->
+      <div id="pillar-spiritual" class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🙏</div><div class="toggle-title text-spiritual">Spiritual</div><div class="toggle-badge">NON-NEGOTIABLE</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="s1" data-label="Prayer — intentional, not rushed"><label>Prayer — intentional, not rushed</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="s2" data-label="Read Bible with annotations"><label>Read Bible with annotations (Genesis → Revelation plan)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="s3" data-label="Apply scripture to a real decision"><label>Apply today's scripture to a real decision</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="s4" data-label="Write a prayer for someone else"><label>Write a prayer for someone else</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="s5" data-label="5 things I'm thankful for"><label>5 things I'm thankful for (write them out)</label></li>
+        </ul></div>
+      </div>
+
+      <!-- MENTAL -->
+      <div id="pillar-mental" class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title text-mental">Mental</div><div class="toggle-badge">DAILY</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="m1" data-label="Journal — 3–5 sentences"><label>Journal — minimum 3–5 sentences, honest reflection</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="m2" data-label="Meditate — 5–10 minutes"><label>Meditate — even 5–10 minutes of silence</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="m3" data-label="Pause before reacting"><label>Pause before reacting to something today</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="m4" data-label="Less phone usage"><label>Less phone usage — set intentional limits</label></li>
+        </ul></div>
+      </div>
+
+      <!-- PERSONAL -->
+      <div id="pillar-personal" class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">📈</div><div class="toggle-title text-personal">Personal Growth</div><div class="toggle-badge">DAILY</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="p1" data-label="Read 10 pages with notes"><label>Read 10 pages of current book (with notes)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="p2" data-label="Language learning practice"><label>Language learning practice (Duolingo or speaking daily)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="p3" data-label="Work on current skill"><label>Work on current skill (Rubik's cube, etc.)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="p4" data-label="Review goals alignment"><label>Review goals — does today align with them?</label></li>
+        </ul>
+        <div class="toggle-block" style="margin-top:9px;">
+          <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">✍️</div><div class="toggle-title" style="font-size:0.8rem;">Book Writing (Weekly)</div></div>
+          <div class="toggle-body"><ul class="check-list">
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="bw1" data-label="Weekly writing session"><label>Weekly writing session — outline or draft pages</label></li>
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="bw2" data-label="Review last writing session"><label>Review what you wrote last session</label></li>
+          </ul></div>
+        </div></div>
+      </div>
+
+      <!-- PHYSICAL -->
+      <div id="pillar-physical" class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💪</div><div class="toggle-title text-physical">Physical</div><div class="toggle-badge">DAILY</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph1" data-label="Workout — lifting program"><label>Workout (lifting program — 5x/week target)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph2" data-label="Stretch — daily"><label>Stretch — daily, no exceptions</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph3" data-label="1 gallon of water"><label>1 gallon of water</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph4" data-label="Get sunlight — go outside"><label>Get sunlight — go outside</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph5" data-label="Sleep on time"><label>Sleep on time — protect recovery</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="ph6" data-label="Track nutrition"><label>Track nutrition / eating plan</label></li>
+        </ul></div>
+      </div>
+
+      <!-- RELATIONSHIPS -->
+      <div id="pillar-relationships" class="toggle-block">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🤝</div><div class="toggle-title text-relationships">Relationships</div><div class="toggle-badge">WEEKLY</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="r1" data-label="Give one genuine compliment"><label>Give one genuine compliment today</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="r2" data-label="Talk to 2 strangers"><label>Talk to 2 strangers — get out of the house</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="r3" data-label="Attend an in-person event"><label>Attend an in-person event this week</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="r4" data-label="Work in a public place"><label>Work in a public place (coffee shop, library)</label></li>
+        </ul></div>
+      </div>
+
+      <!-- CAREER -->
+      <div id="pillar-career" class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🏠</div><div class="toggle-title text-career">Career — Real Estate</div><div class="toggle-badge">PRIORITY NOW</div></div>
+        <div class="toggle-body">
+          <div class="quote-block">Exam: Feb 20th — this is the current mission.</div>
+          <ul class="check-list">
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="c1" data-label="Real estate license study session"><label>Real estate license study session</label></li>
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="c2" data-label="Take a practice quiz"><label>Take a practice quiz</label></li>
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="c3" data-label="Review one concept from real estate book"><label>Review one concept from real estate book</label></li>
+            <li class="check-item"><input type="checkbox" class="daily-cb" data-id="c4" data-label="Plan out work / future pipeline"><label>Plan out work / future deal pipeline</label></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- FINANCIAL -->
+      <div id="pillar-financial" class="toggle-block">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💰</div><div class="toggle-title text-financial">Financial</div><div class="toggle-badge">WEEKLY</div></div>
+        <div class="toggle-body"><ul class="check-list">
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="f1" data-label="Track every expense"><label>Track every expense today</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="f2" data-label="Learn one financial concept"><label>Learn one financial concept</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="f3" data-label="Review budget"><label>Review budget (weekly check-in)</label></li>
+          <li class="check-item"><input type="checkbox" class="daily-cb" data-id="f4" data-label="Contribute to savings"><label>Contribute to savings account (move-out fund)</label></li>
+        </ul></div>
+      </div>
+
+      <div class="daily-notes-label">Today's Reflection / Notes</div>
+      <textarea class="daily-notes" id="daily-notes-input" placeholder="Write your thoughts, wins, struggles, or anything on your mind today..."></textarea>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="save-day-btn" onclick="saveDay()" id="save-btn">💾 Save Today's Progress</button>
+        <span id="save-status" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);"></span>
+      </div>
+    </div>
+
+    <!-- PROGRESS PAGE -->
+    <div class="page" id="page-progress">
+      <div class="page-title">Progress & History</div>
+      <div class="page-sub">EVERY DAY YOU SHOW UP IS RECORDED HERE · SYNCED ACROSS DEVICES</div>
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calPrev()">← Prev</button>
+        <div class="cal-month-label" id="cal-month-label"></div>
+        <button class="cal-nav-btn" onclick="calNext()">Next →</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="day-detail" id="day-detail" style="display:none;">
+        <div class="day-detail-title" id="day-detail-title"></div>
+        <div id="day-detail-body"></div>
+      </div>
+      <div class="section-label">Recent Log</div>
+      <div id="history-log"><div class="empty-state"><div class="empty-icon">📋</div><p>No days saved yet.<br>Complete your daily checklist and hit Save to start your history.</p></div></div>
+    </div>
+
+    <!-- PRIORITIES PAGE -->
+    <div class="page" id="page-priorities">
+      <div class="page-title">Priorities & Identity</div>
+      <div class="page-sub">WHO YOU ARE AND WHAT COMES FIRST</div>
+      <div class="section-label">Priority Order</div>
+      <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:20px;">
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">01</div><div class="nav-dot dot-spiritual"></div><div style="font-weight:800;font-size:0.85rem;" class="text-spiritual">Spiritual</div><div style="margin-left:auto;font-size:0.68rem;color:var(--muted);">The foundation</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">02</div><div class="nav-dot dot-mental"></div><div style="font-weight:800;font-size:0.85rem;" class="text-mental">Mental</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">03</div><div class="nav-dot dot-personal"></div><div style="font-weight:800;font-size:0.85rem;" class="text-personal">Personal Growth</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">04</div><div class="nav-dot dot-physical"></div><div style="font-weight:800;font-size:0.85rem;" class="text-physical">Physical</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">05</div><div class="nav-dot dot-relationships"></div><div style="font-weight:800;font-size:0.85rem;" class="text-relationships">Relationships</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">06</div><div class="nav-dot dot-career"></div><div style="font-weight:800;font-size:0.85rem;" class="text-career">Career</div></div>
+        <div style="display:flex;gap:10px;align-items:center;padding:9px 12px;background:var(--surface);border-radius:7px;border:1px solid var(--border);"><div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--dim);width:16px;">07</div><div class="nav-dot dot-financial"></div><div style="font-weight:800;font-size:0.85rem;" class="text-financial">Financial</div></div>
+      </div>
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title">Identity Statements</div></div>
+        <div class="toggle-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am calm</div>
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am disciplined</div>
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am trustworthy</div>
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am loving</div>
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am honest</div>
+            <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-weight:800;font-size:0.85rem;">I am consistent</div>
+          </div>
+          <div class="quote-block" style="margin-top:10px;">I don't lie to myself.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-YEAR PAGE -->
+    <div class="page" id="page-5year">
+      <div class="page-title">5-Year Vision</div>
+      <div class="page-sub">AGE 20 → 25 — WHO DO YOU BECOME?</div>
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🙏</div><div class="toggle-title text-spiritual">Spiritual</div></div>
+        <div class="toggle-body">
+          <div class="quote-block">Spiritually rooted, biblically grounded, faithfully serving God with consistency, humility, discernment, and maturity.</div>
+          <div class="toggle-block" style="margin-top:9px;"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">📖</div><div class="toggle-title" style="font-size:0.8rem;">Knowledge</div></div><div class="toggle-body"><ul class="content-list"><li>Understand the Bible as a unified story, not isolated verses</li><li>Know what I believe, why I believe it, and how it aligns with Scripture</li><li>Explain Scripture clearly, accurately, and responsibly</li><li>Teach from understanding, not emotion or opinion</li><li>Grounded in truth rather than driven by feelings</li></ul></div></div>
+          <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🕊️</div><div class="toggle-title" style="font-size:0.8rem;">Practice</div></div><div class="toggle-body"><ul class="content-list"><li>Daily prayer and Scripture are foundational habits</li><li>Live out faith consistently in private and public</li><li>Practice obedience even when it costs comfort</li><li>Faith influences decisions, relationships, and reactions</li></ul></div></div>
+          <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🌱</div><div class="toggle-title" style="font-size:0.8rem;">Service</div></div><div class="toggle-body"><ul class="content-list"><li>Serve faithfully in church and community</li><li>Invest time discipling and encouraging others</li><li>Lead spiritually with humility, patience, and compassion</li></ul></div></div>
+          <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🗓️</div><div class="toggle-title" style="font-size:0.8rem;">Spiritual Systems</div></div><div class="toggle-body"><ul class="content-list"><li>Daily — intentional time with God through prayer and Scripture</li><li>Weekly — reflection, worship, and spiritual evaluation</li><li>Monthly — self examination, repentance, and correction</li><li>Yearly — spiritual reset and realignment with God's will</li></ul></div></div>
+        </div>
+      </div>
+      <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title text-mental">Mental</div></div>
+        <div class="toggle-body">
+          <div class="quote-block">Mentally steady, emotionally mature, focused under pressure, guided by clarity rather than impulse.</div>
+          <div class="toggle-block" style="margin-top:9px;"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">👁️</div><div class="toggle-title" style="font-size:0.8rem;">Awareness</div></div><div class="toggle-body"><ul class="content-list"><li>Understand my emotions, thought patterns, and mental habits</li><li>Recognize internal triggers and external distractions early</li><li>Practice honest self-reflection and self-assessment</li></ul></div></div>
+          <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">⚖️</div><div class="toggle-title" style="font-size:0.8rem;">Regulation</div></div><div class="toggle-body"><ul class="content-list"><li>Respond thoughtfully instead of reacting emotionally</li><li>Manage stress, pressure, and conflict with composure</li><li>Do not allow fear, anger, or frustration to guide decisions</li></ul></div></div>
+          <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🎯</div><div class="toggle-title" style="font-size:0.8rem;">Focus</div></div><div class="toggle-body"><ul class="content-list"><li>Sustain attention on what matters most</li><li>Eliminate unnecessary mental noise and distractions</li><li>Finish what I start</li></ul></div></div>
+        </div>
+      </div>
+      <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">📈</div><div class="toggle-title text-personal">Personal Growth — Things I Want to Achieve</div></div>
+        <div class="toggle-body"><ul class="content-list"><li>MIT</li><li>Youth pastor</li><li>Read the Bible 2–3 times with understanding</li><li>Attend a Bible institution</li><li>Read a new book every 1–2 weeks</li><li>Write a book</li><li>Learn a new language</li><li>Own my own wholesale real estate company</li><li>Run multiple businesses — automate everything in wholesale</li><li>Be financially literate — taxes, loopholes, stocks, budgeting</li><li>Meet 5 new people a day</li><li>Workout 4x + cardio 5x + stretch daily</li></ul></div>
+      </div>
+    </div>
+
+    <!-- 1-YEAR PAGE -->
+    <div class="page" id="page-1year">
+      <div class="page-title">1-Year Plan</div>
+      <div class="page-sub">INPUTS → BEHAVIORS → OUTCOMES</div>
+      <div class="section-label">Goals to Hit This Year</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px;">
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">📖 Read Bible start to finish with annotations</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">⛪ Become a deacon</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">📚 Finish 12 books with notes</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">✍️ Start writing a book</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">🌍 Learn a new language</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">💪 Reach 200 lbs + Bench 225</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">🏠 Real estate license + close first deal</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">💳 Build credit score to 700</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">🏗️ Start building your own business</div>
+        <div style="padding:9px 11px;background:var(--surface);border-radius:7px;border:1px solid var(--border);font-size:0.78rem;">🚗 Save for car + Move out</div>
+      </div>
+      <div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🙏</div><div class="toggle-title text-spiritual">Spiritual — Inputs / Behaviors / Outcomes</div></div><div class="toggle-body"><div class="section-label">Inputs</div><ul class="content-list"><li>Daily prayer and scripture</li><li>Structured bible reading and study</li><li>Weekly reflection and evaluation</li><li>Regular church involvement</li></ul><div class="section-label">Behaviors</div><ul class="content-list"><li>Obedience even when uncomfortable</li><li>Consistency in private and public faith</li><li>Faith influencing decisions and priorities</li></ul><div class="section-label">Outcomes</div><ul class="content-list"><li>Clear understanding of scripture beyond isolated verses</li><li>Stronger confidence in what I believe and why</li><li>Visible spiritual fruit daily</li></ul></div></div>
+      <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title text-mental">Mental — Inputs / Behaviors / Outcomes</div></div><div class="toggle-body"><div class="section-label">Inputs</div><ul class="content-list"><li>Daily reflection or journaling</li><li>Intentional rest and recovery</li><li>Clear boundaries with media and distractions</li></ul><div class="section-label">Behaviors</div><ul class="content-list"><li>Pausing before reacting</li><li>Managing stress with structure instead of avoidance</li><li>Protecting focus and attention intentionally</li></ul><div class="section-label">Outcomes</div><ul class="content-list"><li>Increased emotional awareness</li><li>Improved emotional regulation</li><li>Greater mental clarity and calm</li></ul></div></div>
+      <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">📈</div><div class="toggle-title text-personal">Personal Growth — Inputs / Behaviors / Outcomes</div></div><div class="toggle-body"><div class="section-label">Inputs</div><ul class="content-list"><li>Consistent reading and learning</li><li>Skill practice through repetition</li><li>Weekly review of goals and habits</li></ul><div class="section-label">Behaviors</div><ul class="content-list"><li>Discipline in daily routines</li><li>Follow through on commitments</li><li>Accountability and honest evaluation</li></ul><div class="section-label">Outcomes</div><ul class="content-list"><li>Learning becomes a habit</li><li>Stronger communication and leadership skills</li><li>Clear progress in character and capability</li></ul></div></div>
+    </div>
+
+    <!-- 6-MONTH PAGE -->
+    <div class="page" id="page-6month">
+      <div class="page-title">6-Month Goals</div>
+      <div class="page-sub">CONCRETE TARGETS WITH FOCUS RULES</div>
+      <div class="quote-block" style="margin-bottom:18px;">In 6 months I am spiritually disciplined, physically stronger, financially responsible, enrolled and progressing academically, and actively building my own independent career and life.</div>
+      <div class="toggle-block open" style="border-left:3px solid var(--spiritual);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🙏</div><div class="toggle-title text-spiritual">Spiritual</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-s1"><label for="g-s1">Read Bible Genesis to Revelation with annotations</label></li><li class="check-item"><input type="checkbox" id="g-s2"><label for="g-s2">Become a deacon or formally enter the process</label></li></ul><div class="section-label">Focus Rules</div><ul class="content-list"><li>Daily structured Bible reading with notes</li><li>Weekly discussion, mentorship, or accountability in church</li></ul></div></div>
+      <div class="toggle-block" style="border-left:3px solid var(--mental);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title text-mental">Mental / Intellectual</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-m1"><label for="g-m1">Finish 12 books with notes</label></li><li class="check-item"><input type="checkbox" id="g-m2"><label for="g-m2">Begin writing a book — outline or first chapters</label></li></ul></div></div>
+      <div class="toggle-block" style="border-left:3px solid var(--personal);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🎓</div><div class="toggle-title text-personal">Educational</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-e1"><label for="g-e1">Enroll at Collin College as part-time student</label></li><li class="check-item"><input type="checkbox" id="g-e2"><label for="g-e2">Complete and pass all enrolled courses</label></li><li class="check-item"><input type="checkbox" id="g-e3"><label for="g-e3">Develop a new skill</label></li></ul></div></div>
+      <div class="toggle-block" style="border-left:3px solid var(--physical);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💪</div><div class="toggle-title text-physical">Physical</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-p1"><label for="g-p1">Reach 200 pounds</label></li><li class="check-item"><input type="checkbox" id="g-p2"><label for="g-p2">Work out 5 times per week consistently</label></li><li class="check-item"><input type="checkbox" id="g-p3"><label for="g-p3">Bench press 225 lbs</label></li><li class="check-item"><input type="checkbox" id="g-p4"><label for="g-p4">Sit criss-cross applesauce (flexibility)</label></li></ul></div></div>
+      <div class="toggle-block" style="border-left:3px solid var(--career);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🏠</div><div class="toggle-title text-career">Career — Real Estate</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-c1"><label for="g-c1">Obtain real estate license</label></li><li class="check-item"><input type="checkbox" id="g-c2"><label for="g-c2">Close first deal independently</label></li><li class="check-item"><input type="checkbox" id="g-c3"><label for="g-c3">Begin building your own real estate business</label></li></ul></div></div>
+      <div class="toggle-block" style="border-left:3px solid var(--financial);"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💰</div><div class="toggle-title text-financial">Financial</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-f1"><label for="g-f1">Create and consistently follow a personal budget</label></li><li class="check-item"><input type="checkbox" id="g-f2"><label for="g-f2">Raise credit score toward 700</label></li></ul></div></div>
+      <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🏡</div><div class="toggle-title">Life</div></div><div class="toggle-body"><div class="section-label">Goals</div><ul class="check-list"><li class="check-item"><input type="checkbox" id="g-l1"><label for="g-l1">Move out into your own place</label></li><li class="check-item"><input type="checkbox" id="g-l2"><label for="g-l2">Purchase your own car</label></li></ul><div class="section-label">Focus Rules</div><ul class="content-list"><li>Save intentionally</li><li>Plan expenses realistically</li><li>Do not rush.</li></ul></div></div>
+    </div>
+
+    <!-- MONTHLY PAGE -->
+    <div class="page" id="page-monthly">
+      <div class="page-title">Monthly Execution</div>
+      <div class="page-sub">MONTH BY MONTH BREAKDOWN</div>
+      <div class="month-timeline">
+        <div class="month-pip active" onclick="showMonth(1,this)"><div class="m-num">M1</div><div class="m-word">Learn</div></div>
+        <div class="month-pip" onclick="showMonth(2,this)"><div class="m-num">M2</div><div class="m-word">Show Up</div></div>
+        <div class="month-pip" onclick="showMonth(3,this)"><div class="m-num">M3</div><div class="m-word">Apply</div></div>
+        <div class="month-pip" onclick="showMonth(4,this)"><div class="m-num">M4</div><div class="m-word">Pressure</div></div>
+        <div class="month-pip" onclick="showMonth(5,this)"><div class="m-num">M5</div><div class="m-word">Results</div></div>
+        <div class="month-pip" onclick="showMonth(6,this)"><div class="m-num">M6</div><div class="m-word">Own It</div></div>
+      </div>
+      <div class="month-content" id="month-1">
+        <div class="quote-block">Role: Student — Learn, Organize, Start. Nothing is vague by end of month.</div>
+        <div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🙏</div><div class="toggle-title text-spiritual">Spiritual</div></div><div class="toggle-body"><ul class="check-list"><li class="check-item"><input type="checkbox"><label>Choose Bible reading plan: Genesis to Revelation</label></li><li class="check-item"><input type="checkbox"><label>Decide annotation system</label></li><li class="check-item"><input type="checkbox"><label>Lock in daily reading time and location</label></li><li class="check-item"><input type="checkbox"><label>Meet with church leadership — deacon requirements</label></li><li class="check-item"><input type="checkbox"><label>Identify one area of church service to start</label></li></ul></div></div>
+        <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧠</div><div class="toggle-title text-mental">Mental</div></div><div class="toggle-body"><ul class="check-list"><li class="check-item"><input type="checkbox"><label>Start daily journaling — 3–5 sentences</label></li><li class="check-item"><input type="checkbox"><label>Write top 5 recurring distractions and remove one</label></li><li class="check-item"><input type="checkbox"><label>Meditate once a day</label></li><li class="check-item"><input type="checkbox"><label>Establish basic morning and night routine</label></li></ul></div></div>
+        <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💪</div><div class="toggle-title text-physical">Physical</div></div><div class="toggle-body"><ul class="check-list"><li class="check-item"><input type="checkbox"><label>Start structured lifting program</label></li><li class="check-item"><input type="checkbox"><label>Track weight and strength from day 1</label></li><li class="check-item"><input type="checkbox"><label>Begin consistent eating plan</label></li></ul></div></div>
+        <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🏠</div><div class="toggle-title text-career">Career</div></div><div class="toggle-body"><ul class="check-list"><li class="check-item"><input type="checkbox"><label>Real estate license study — exam Feb 20th</label></li><li class="check-item"><input type="checkbox"><label>Save for Collin College enrollment</label></li></ul></div></div>
+        <div class="toggle-block"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💰</div><div class="toggle-title text-financial">Financial</div></div><div class="toggle-body"><ul class="check-list"><li class="check-item"><input type="checkbox"><label>Build first real budget</label></li><li class="check-item"><input type="checkbox"><label>Check credit report and list actionable steps</label></li><li class="check-item"><input type="checkbox"><label>Track every expense on paper</label></li><li class="check-item"><input type="checkbox"><label>Open savings account for moving out</label></li></ul></div></div>
+      </div>
+      <div class="month-content" id="month-2" style="display:none;"><div class="quote-block">Role: Executor — Show up daily. No skipped days.</div><div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-title">All Pillars — Month 2</div></div><div class="toggle-body"><ul class="content-list"><li>🙏 No skipped Bible days — begin serving — apply scripture daily</li><li>🧠 Journal daily with honesty — practice pausing before reacting</li><li>📈 Pick a language and speak daily — pick a new skill and apply it</li><li>💪 Lift 5 times weekly — adjust nutrition based on data</li><li>🏠 Daily license study — begin understanding deal flow</li><li>💰 Follow budget strictly — build payment discipline</li></ul></div></div></div>
+      <div class="month-content" id="month-3" style="display:none;"><div class="quote-block">Role: Contributor — Apply what you've learned. Action replaces preparation.</div><div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-title">All Pillars — Month 3</div></div><div class="toggle-body"><ul class="content-list"><li>🙏 Bible reading feels natural — deacon process actively moving</li><li>🧠 Emotional reactions decrease — stress handled with intention</li><li>🎓 Perform well on midterms — study independently</li><li>💪 Strength and weight clearly increasing</li><li>🏠 Schedule license exam — begin real deal actions</li><li>💰 Credit trending upward — savings growing</li></ul></div></div></div>
+      <div class="month-content" id="month-4" style="display:none;"><div class="quote-block">Role: Leader in Training — Perform under stress. Stability replaces inconsistency.</div><div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-title">All Pillars — Month 4</div></div><div class="toggle-body"><ul class="content-list"><li>🙏 Faith consistent during busy weeks — others rely on your service</li><li>🧠 Calm maintained during overload — journaling becomes reflective</li><li>🎓 Handle heavy coursework without slipping</li><li>💪 Bench approaching 225 — training continues despite fatigue</li><li>🏠 License completed or close — active pipeline</li><li>💰 Budget maintained under pressure — move-out plan finalized</li></ul></div></div></div>
+      <div class="month-content" id="month-5" style="display:none;"><div class="quote-block">Role: Operator — Produce outcomes.</div><div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-title">All Pillars — Month 5</div></div><div class="toggle-body"><ul class="content-list"><li>🙏 Bible nearing completion — trusted and consistent in service</li><li>🧠 Strong self-honesty — focus protected intentionally</li><li>🎓 Final projects completed early</li><li>💪 Near 200 lbs — bench near or at 225</li><li>🏠 First deal closed or imminent — business systems forming</li><li>💰 Emergency fund building — credit significantly improved — housing secured</li></ul></div></div></div>
+      <div class="month-content" id="month-6" style="display:none;"><div class="quote-block">Role: Owner — Sustain and prepare for the next season.</div><div class="toggle-block open"><div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-title">All Pillars — Month 6</div></div><div class="toggle-body"><ul class="content-list"><li>🙏 Bible completed with annotations — new spiritual growth plan set</li><li>🧠 Confidence without ego — habits reviewed for long-term protection</li><li>🎓 Classes completed successfully</li><li>💪 Strongest and healthiest so far</li><li>🏠 License active — deal closed — business operating</li><li>💰 Budget mastered — credit moving toward 700 — moved out or fully transitioned</li></ul></div></div></div>
+    </div>
+
+
+    <!-- WORKOUT PAGE -->
+    <div class="page" id="page-workout">
+      <div class="page-title">Workout Plan</div>
+      <div class="page-sub">UPPER / LOWER SPLIT · 5 DAYS / WEEK</div>
+
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🧘</div><div class="toggle-title text-physical">Daily Stretching</div><div class="toggle-badge">EVERY DAY</div></div>
+        <div class="toggle-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--physical);margin-bottom:8px;letter-spacing:0.1em;">ARMS</div><ul class="content-list" style="font-size:0.78rem;"><li>Cross-body shoulder stretch</li><li>Tricep overhead stretch</li><li>Wrist flexor stretch</li><li>Bicep wall stretch</li></ul></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--physical);margin-bottom:8px;letter-spacing:0.1em;">LEGS</div><ul class="content-list" style="font-size:0.78rem;"><li>Standing quad stretch</li><li>Seated hamstring stretch</li><li>Hip flexor lunge stretch</li><li>Calf wall stretch</li></ul></div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;"><div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--physical);margin-bottom:8px;letter-spacing:0.1em;">BACK</div><ul class="content-list" style="font-size:0.78rem;"><li>Cat-cow stretch</li><li>Child's pose</li><li>Seated twist</li><li>Lat overhead stretch</li></ul></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">💪</div><div class="toggle-title text-physical">Upper — Day 1 &nbsp;<span style="font-weight:400;font-size:0.75rem;color:var(--muted);">Push + Core</span></div></div>
+        <div class="toggle-body">
+          <div class="workout-grid">
+            <div class="workout-card"><div class="workout-muscle">CHEST</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Cable Flies</span><span class="ex-sets">3–4 sets · 12–15 reps</span></div><div class="workout-ex"><span class="ex-name">Incline Bench Press</span><span class="ex-sets">4 sets · 6–10 reps</span></div></div></div>
+            <div class="workout-card"><div class="workout-muscle">SHOULDERS</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Overhead Press</span><span class="ex-sets">4 sets · 6–10 reps</span></div><div class="workout-ex"><span class="ex-name">Lateral Raises</span><span class="ex-sets">3–4 sets · 12–15 reps</span></div></div></div>
+            <div class="workout-card"><div class="workout-muscle">TRICEPS</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Pushdowns</span><span class="ex-sets">3 sets · 10–15 reps</span></div><div class="workout-ex"><span class="ex-name">Overhead Tricep Extension</span><span class="ex-sets">3 sets · 10–12 reps</span></div></div></div>
+            <div class="workout-card"><div class="workout-muscle">CORE</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Plank</span><span class="ex-sets">3 sets · 30–60 sec</span></div><div class="workout-ex"><span class="ex-name">Leg Raises</span><span class="ex-sets">3 sets · 12–15 reps</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🏋️</div><div class="toggle-title text-physical">Upper — Day 2 &nbsp;<span style="font-weight:400;font-size:0.75rem;color:var(--muted);">Pull</span></div></div>
+        <div class="toggle-body">
+          <div class="workout-grid">
+            <div class="workout-card"><div class="workout-muscle">BACK</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Pull Ups</span><span class="ex-sets">3–4 sets · max reps</span></div><div class="workout-ex"><span class="ex-name">Barbell Row</span><span class="ex-sets">4 sets · 6–10 reps</span></div><div class="workout-ex"><span class="ex-name">Cable Row</span><span class="ex-sets">3 sets · 10–12 reps</span></div></div></div>
+            <div class="workout-card"><div class="workout-muscle">BICEPS</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Preacher Curls</span><span class="ex-sets">3 sets · 10–12 reps</span></div><div class="workout-ex"><span class="ex-name">Cable Curls</span><span class="ex-sets">3 sets · 12–15 reps</span></div><div class="workout-ex"><span class="ex-name">Hammer Curls</span><span class="ex-sets">3 sets · 10–12 reps</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🦵</div><div class="toggle-title text-physical">Lower — Day 1 &nbsp;<span style="font-weight:400;font-size:0.75rem;color:var(--muted);">Quads</span></div></div>
+        <div class="toggle-body">
+          <div class="workout-grid">
+            <div class="workout-card" style="grid-column:1/-1;"><div class="workout-muscle">QUADS</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Squat</span><span class="ex-sets">4 sets · 6–10 reps</span></div><div class="workout-ex"><span class="ex-name">Leg Press</span><span class="ex-sets">3–4 sets · 10–15 reps</span></div><div class="workout-ex"><span class="ex-name">Bulgarian Split Squat</span><span class="ex-sets">3 sets · 8–10 reps each leg</span></div><div class="workout-ex"><span class="ex-name">Leg Extension</span><span class="ex-sets">3 sets · 12–15 reps</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-block open">
+        <div class="toggle-header" onclick="toggleBlock(this.parentElement)"><div class="toggle-arrow">▶</div><div class="toggle-icon">🦵</div><div class="toggle-title text-physical">Lower — Day 2 &nbsp;<span style="font-weight:400;font-size:0.75rem;color:var(--muted);">Hamstrings + Calves</span></div></div>
+        <div class="toggle-body">
+          <div class="workout-grid">
+            <div class="workout-card"><div class="workout-muscle">HAMSTRINGS</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Deadlift</span><span class="ex-sets">4 sets · 5–8 reps</span></div><div class="workout-ex"><span class="ex-name">Leg Curl</span><span class="ex-sets">3–4 sets · 10–15 reps</span></div></div></div>
+            <div class="workout-card"><div class="workout-muscle">CALVES</div><div class="workout-exercises"><div class="workout-ex"><span class="ex-name">Calf Raises</span><span class="ex-sets">4 sets · 15–20 reps</span></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-label" style="margin-top:8px;">Suggested Weekly Schedule</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--dim);margin-bottom:5px;">MON</div><div style="font-size:0.76rem;font-weight:800;color:var(--physical);">Upper 1</div><div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">Push + Core</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--dim);margin-bottom:5px;">TUE</div><div style="font-size:0.76rem;font-weight:800;color:var(--physical);">Lower 1</div><div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">Quads</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--dim);margin-bottom:5px;">WED</div><div style="font-size:0.76rem;font-weight:800;color:var(--physical);">Upper 2</div><div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">Pull</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--dim);margin-bottom:5px;">THU</div><div style="font-size:0.76rem;font-weight:800;color:var(--physical);">Lower 2</div><div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">Hamstrings</div></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;"><div style="font-family:'DM Mono',monospace;font-size:0.56rem;color:var(--dim);margin-bottom:5px;">FRI</div><div style="font-size:0.76rem;font-weight:800;color:var(--physical);">Upper 1</div><div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">Repeat</div></div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--dim);text-align:center;padding:8px 0;">SAT — REST / ACTIVE RECOVERY &nbsp;·&nbsp; SUN — REST</div>
+    </div>
+
+    <!-- JOURNAL PAGE -->
+    <div class="page" id="page-journal">
+      <div class="page-title">Journal</div>
+      <div class="page-sub">YOUR PRIVATE SPACE — SAVED ACROSS ALL DEVICES</div>
+
+      <div class="daily-notes-label">Write Today's Entry</div>
+      <textarea class="journal-write-area" id="journal-input" placeholder="Write freely. No rules, no structure. This is your space..."></textarea>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <button class="journal-save-btn" onclick="saveJournalEntry()">📓 Save Entry</button>
+        <span id="journal-save-status" style="font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);"></span>
+      </div>
+
+      <div class="section-label" style="margin-top:28px;">Past Entries</div>
+      <div id="journal-history"><div class="empty-state"><div class="empty-icon">📓</div><p>No journal entries yet.<br>Write something and hit Save.</p></div></div>
+    </div>
+
+    <!-- GITHUB PAGE -->
+    <div class="page" id="page-github">
+      <div class="page-title">GitHub Pages Setup</div>
+      <div class="page-sub">YOUR BACKUP URL — FREE, PERMANENT, OPENS ON ANY DEVICE</div>
+
+      <div class="quote-block">This gives you a real URL like <strong>yourname.github.io/vision-system</strong> that you can bookmark on any device. Free forever, no subscription needed.</div>
+
+      <div class="section-label" style="margin-top:20px;">Step by Step</div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:6px 16px;background:var(--surface);margin-bottom:20px;">
+        <div class="guide-step"><div class="guide-num">1</div><div class="guide-text">Go to <strong>github.com</strong> and create a free account if you don't have one. Takes 2 minutes.</div></div>
+        <div class="guide-step"><div class="guide-num">2</div><div class="guide-text">Click the <strong>+</strong> icon in the top right → <strong>New repository</strong></div></div>
+        <div class="guide-step"><div class="guide-num">3</div><div class="guide-text">Name it something like <code>vision-system</code> → set it to <strong>Public</strong> → click <strong>Create repository</strong></div></div>
+        <div class="guide-step"><div class="guide-num">4</div><div class="guide-text">Click <strong>Add file → Upload files</strong> → upload your <code>vision_dashboard_v2.html</code> file from this chat</div></div>
+        <div class="guide-step"><div class="guide-num">5</div><div class="guide-text">Before uploading, rename the file to exactly <code>index.html</code> — GitHub Pages requires this name</div></div>
+        <div class="guide-step"><div class="guide-num">6</div><div class="guide-text">Scroll down and click <strong>Commit changes</strong></div></div>
+        <div class="guide-step"><div class="guide-num">7</div><div class="guide-text">Go to <strong>Settings</strong> (tab at the top of your repo) → scroll to <strong>Pages</strong> in the left sidebar</div></div>
+        <div class="guide-step"><div class="guide-num">8</div><div class="guide-text">Under <strong>Source</strong>, select <strong>Deploy from a branch</strong> → choose <strong>main</strong> → click <strong>Save</strong></div></div>
+        <div class="guide-step"><div class="guide-num">9</div><div class="guide-text">Wait about 60 seconds → refresh the page → your URL appears at the top: <strong>https://yourname.github.io/vision-system</strong></div></div>
+        <div class="guide-step"><div class="guide-num">10</div><div class="guide-text">Bookmark that URL on every device. Done. Your dashboard lives there permanently.</div></div>
+      </div>
+
+      <div class="section-label">Important Notes</div>
+      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:0.82rem;line-height:1.6;"><span style="color:var(--career);font-weight:700;">⚡ Updating the file</span> — If you ever want to update your dashboard, just upload a new <code>index.html</code> to the same repo and it'll go live automatically within a minute.</div>
+        <div style="font-size:0.82rem;line-height:1.6;"><span style="color:var(--mental);font-weight:700;">💾 History storage</span> — The GitHub version saves your daily history to whichever browser you're using. Use the same browser on the same device each time to keep your history consistent.</div>
+        <div style="font-size:0.82rem;line-height:1.6;"><span style="color:var(--personal);font-weight:700;">🔒 Privacy</span> — The repo is public (meaning anyone with the URL can see your dashboard) but nobody will find it unless you share the link. If you want it fully private, GitHub offers private repos but Pages requires a paid plan for those.</div>
+      </div>
+    </div>
+  </div><!-- end main -->
+</div><!-- end layout -->
+</div><!-- end app -->
+
+<script>
+// ─── STORAGE WRAPPER (uses window.storage persistent API) ───
+const Storage = {
+  async get(key) {
+    try {
+      const r = await window.storage.get(key);
+      return r ? JSON.parse(r.value) : null;
+    } catch(e) { return null; }
+  },
+  async set(key, val) {
+    try {
+      await window.storage.set(key, JSON.stringify(val));
+      return true;
+    } catch(e) { return false; }
+  },
+  async list(prefix) {
+    try {
+      const r = await window.storage.list(prefix);
+      return r ? r.keys : [];
+    } catch(e) { return []; }
+  }
+};
+
+// ─── GLOBALS ───
+const todayStr = new Date().toISOString().slice(0,10);
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selectedDate = null;
+let isSyncing = false;
+
+// ─── INIT ───
+async function init() {
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  // Load today's saved draft
+  const draft = await Storage.get('draft:' + todayStr);
+  if (draft) {
+    if (draft.checks) {
+      draft.checks.forEach(id => {
+        const cb = document.querySelector(`.daily-cb[data-id="${id}"]`);
+        if (cb) { cb.checked = true; cb.closest('.check-item').classList.add('done'); }
+      });
+    }
+    if (draft.note) document.getElementById('daily-notes-input').value = draft.note;
+  }
+
+  updateProgress();
+  await refreshStats();
+
+  // Hide loading, show app
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  setSyncStatus('synced', 'synced');
+}
+
+// ─── SYNC STATUS ───
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = label;
+}
+
+// ─── CHECKBOXES ───
+document.querySelectorAll('.daily-cb').forEach(cb => {
+  cb.addEventListener('change', function() {
+    this.closest('.check-item').classList.toggle('done', this.checked);
+    updateProgress();
+    autosaveDraft();
+  });
+});
+
+document.getElementById('daily-notes-input').addEventListener('input', autosaveDraft);
+
+let saveTimeout;
+async function autosaveDraft() {
+  setSyncStatus('syncing', 'saving...');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    const draft = { checks: getCheckedIds(), note: document.getElementById('daily-notes-input').value, ts: Date.now() };
+    await Storage.set('draft:' + todayStr, draft);
+    setSyncStatus('synced', 'auto-saved');
+  }, 800);
+}
+
+function getCheckedIds() {
+  return Array.from(document.querySelectorAll('.daily-cb:checked')).map(c => c.dataset.id);
+}
+
+function getCheckedLabels() {
+  return Array.from(document.querySelectorAll('.daily-cb')).map(c => ({ id: c.dataset.id, label: c.dataset.label, done: c.checked }));
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll('.daily-cb').length;
+  const done = document.querySelectorAll('.daily-cb:checked').length;
+  const pct = all > 0 ? Math.round((done/all)*100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = done + ' / ' + all;
+  document.getElementById('today-pct').textContent = pct;
+}
+
+// ─── SAVE DAY ───
+async function saveDay() {
+  setSyncStatus('syncing', 'saving...');
+  const checks = getCheckedLabels();
+  const note = document.getElementById('daily-notes-input').value.trim();
+  const done = checks.filter(c => c.done).length;
+  const pct = Math.round((done / checks.length) * 100);
+
+  const entry = { date: todayStr, checks, note, pct, savedAt: Date.now() };
+  const ok = await Storage.set('day:' + todayStr, entry);
+
+  if (ok) {
+    setSyncStatus('synced', 'saved ✓');
+    const btn = document.getElementById('save-btn');
+    btn.textContent = '✅ Saved!';
+    btn.classList.add('saved');
+    document.getElementById('save-status').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+    setTimeout(() => { btn.textContent = '💾 Save Today\'s Progress'; btn.classList.remove('saved'); }, 2500);
+    await refreshStats();
+  } else {
+    setSyncStatus('', 'save failed');
+  }
+}
+
+// ─── STATS ───
+async function refreshStats() {
+  const keys = await Storage.list('day:');
+  document.getElementById('total-days').textContent = keys.length;
+
+  // Streak
+  let streak = 0;
+  let d = new Date();
+  while (true) {
+    const key = 'day:' + d.toISOString().slice(0,10);
+    if (keys.includes(key)) { streak++; d.setDate(d.getDate()-1); }
+    else break;
+    if (streak > 365) break;
+  }
+  document.getElementById('streak-count').textContent = streak;
+}
+
+// ─── CALENDAR ───
+async function renderCalendar() {
+  const label = new Date(calYear, calMonth, 1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  document.getElementById('cal-month-label').textContent = label;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const el = document.createElement('div'); el.className = 'cal-dow'; el.textContent = d; grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const allKeys = await Storage.list('day:');
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div'); el.className = 'cal-day empty'; grid.appendChild(el);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const hasData = allKeys.includes('day:' + ds);
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    if (ds === todayStr) el.classList.add('today');
+    if (selectedDate === ds) el.classList.add('selected');
+
+    const numEl = document.createElement('div'); numEl.className = 'cal-num'; numEl.textContent = day; el.appendChild(numEl);
+
+    if (hasData) {
+      const entry = await Storage.get('day:' + ds);
+      if (entry) {
+        el.classList.add('has-data');
+        if (entry.pct === 100) el.classList.add('perfect');
+        else if (entry.pct >= 50) el.classList.add('partial');
+
+        const dots = document.createElement('div'); dots.className = 'cal-dots';
+        const pillarMap = { spiritual:['s1','s2','s3','s4','s5'], mental:['m1','m2','m3','m4'], personal:['p1','p2','p3','p4','bw1','bw2'], physical:['ph1','ph2','ph3','ph4','ph5','ph6'], relationships:['r1','r2','r3','r4'], career:['c1','c2','c3','c4'], financial:['f1','f2','f3','f4'] };
+        const doneIds = (entry.checks || []).filter(c => c.done).map(c => c.id);
+        Object.entries(pillarMap).forEach(([pillar, ids]) => {
+          if (ids.some(id => doneIds.includes(id))) {
+            const dot = document.createElement('div'); dot.className = `cal-dot dot-${pillar}`; dots.appendChild(dot);
+          }
+        });
+        el.appendChild(dots);
+        el.onclick = () => showDayDetail(ds, entry);
+      }
+    } else {
+      el.onclick = () => { selectedDate = ds; renderCalendar(); document.getElementById('day-detail').style.display = 'none'; };
+    }
+    grid.appendChild(el);
+  }
+}
+
+function showDayDetail(ds, data) {
+  selectedDate = ds;
+  renderCalendar();
+  const panel = document.getElementById('day-detail');
+  const d = new Date(ds + 'T12:00:00');
+  document.getElementById('day-detail-title').textContent = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + ' — ' + data.pct + '% complete';
+  let html = '';
+  if (data.note) html += `<div class="log-note">${data.note.replace(/\n/g,'<br>')}</div>`;
+  if (data.checks) {
+    html += '<div class="log-checks">';
+    data.checks.forEach(c => { html += `<span class="log-check-tag ${c.done?'done-tag':'skip-tag'}">${c.done?'✓':'✗'} ${c.label}</span>`; });
+    html += '</div>';
+  }
+  document.getElementById('day-detail-body').innerHTML = html || '<p style="color:var(--muted);font-size:0.8rem;">No notes saved for this day.</p>';
+  panel.style.display = 'block';
+}
+
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+
+// ─── HISTORY LOG ───
+async function renderHistoryLog() {
+  const keys = await Storage.list('day:');
+  keys.sort((a,b) => b.localeCompare(a));
+
+  const log = document.getElementById('history-log');
+  if (keys.length === 0) {
+    log.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No days saved yet.<br>Complete your daily checklist and hit Save to start your history.</p></div>`;
+    return;
+  }
+
+  const entries = await Promise.all(keys.map(k => Storage.get(k)));
+  log.innerHTML = entries.filter(Boolean).map(e => {
+    const d = new Date(e.date + 'T12:00:00');
+    const label = d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+    const done = (e.checks||[]).filter(c=>c.done).length;
+    const total = (e.checks||[]).length;
+    return `<div class="log-entry" onclick="this.classList.toggle('open')">
+      <div class="log-header">
+        <div class="log-date">${label}</div>
+        <div class="log-score">${done}/${total} · ${e.pct}%</div>
+      </div>
+      <div class="log-body">
+        ${e.note ? `<div class="log-note">${e.note.replace(/\n/g,'<br>')}</div>` : ''}
+        <div class="log-checks">${(e.checks||[]).map(c=>`<span class="log-check-tag ${c.done?'done-tag':'skip-tag'}">${c.done?'✓':'✗'} ${c.label}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── NAV ───
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if (el) el.classList.add('active');
+  document.querySelector('.main').scrollTop = 0;
+  if (id === 'progress') { renderCalendar(); renderHistoryLog(); }
+}
+
+function toggleBlock(b) { b.classList.toggle('open'); }
+
+function showMonth(num, el) {
+  document.querySelectorAll('.month-content').forEach(m => m.style.display = 'none');
+  document.querySelectorAll('.month-pip').forEach(p => p.classList.remove('active'));
+  document.getElementById('month-'+num).style.display = 'block';
+  el.classList.add('active');
+}
+
+function scrollToPillar(name) {
+  const el = document.getElementById('pillar-'+name);
+  if (el) { el.scrollIntoView({behavior:'smooth',block:'start'}); el.classList.add('open'); }
+}
+
+
+// ─── JOURNAL (WEBAPP) ───
+async function saveJournalEntry() {
+  const text = document.getElementById('journal-input').value.trim();
+  if (!text) return;
+  const ts = Date.now();
+  const key = 'journal:' + ts;
+  const entry = { ts, date: new Date().toISOString().slice(0,10), text };
+  const ok = await Storage.set(key, entry);
+  if (ok) {
+    document.getElementById('journal-save-status').textContent = 'Saved at ' + new Date().toLocaleTimeString();
+    document.getElementById('journal-input').value = '';
+    renderJournalHistory();
+  }
+}
+
+async function renderJournalHistory() {
+  const keys = await Storage.list('journal:');
+  keys.sort((a,b) => b.localeCompare(a));
+  const container = document.getElementById('journal-history');
+  if (keys.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📓</div><p>No journal entries yet.<br>Write something and hit Save.</p></div>';
+    return;
+  }
+  const entries = await Promise.all(keys.map(k => Storage.get(k)));
+  container.innerHTML = entries.filter(Boolean).map(e => {
+    const d = new Date(e.ts);
+    const label = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + ' · ' + d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const preview = e.text.slice(0,120) + (e.text.length > 120 ? '...' : '');
+    return `<div class="journal-entry-card" onclick="this.classList.toggle('open')">
+      <div class="journal-entry-date">${label}</div>
+      <div class="journal-entry-preview">${preview.replace(/\n/g,' ')}</div>
+      <div class="journal-full">${e.text.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── START ───
+init();
+</script>
+</body>
+</html>
